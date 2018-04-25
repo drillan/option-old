@@ -9,7 +9,7 @@ Option勉強会の資料など
 
 * [グリークス](https://github.com/drillan/option/blob/master/Greeks.ipynb)
 
-* [オプション戦略](https://github.com/drillan/option/blob/master/strategy.ipynb)
+* [オプション戦略](https://github.com/drillan/option/blob/master/Strategy.ipynb)
 
 * [ダイナミックヘッジ](https://github.com/drillan/option/blob/master/DynamicHedging.ipynb)
 ## Jupyter Notebook
