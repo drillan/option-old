@@ -99,6 +99,7 @@ class Portfolio:
                 "vega",
                 "theta",
             ],
+            dtype=float,
         )
 
     def add(self, t0, qty, maturity, right, k=np.nan):
@@ -119,6 +120,7 @@ class Portfolio:
             self.id, ["a_price", "iv", "delta", "gamma", "vega", "theta"]
         ] = (price, iv, delta, gamma, vega, theta)
 
+        self.position["maturity"] = self.position["maturity"].astype(int)
         self.id += 1
 
     def update(self, t0):
@@ -164,10 +166,12 @@ def plot_iv(t0, axes, prev1=None, prev2=None):
 
     s0_1_prev = np.nan
     if prev1 and prev2:
-        (s0_1_prev, t_1_prev, op_df1_prev), (s0_2_prev, t_2_prev, op_df2_prev) = (
-            prev1,
-            prev2,
-        )
+        (s0_1_prev, t_1_prev, op_df1_prev, full_price1), (
+            s0_2_prev,
+            t_2_prev,
+            op_df2_prev,
+            full_price2,
+        ) = (prev1, prev2)
         axes.plot(op_df1_prev.index, op_df1_prev["iv"], linestyle="--", color="#1f77b4")
         axes.plot(op_df2_prev.index, op_df2_prev["iv"], linestyle="--", color="#ff7f0e")
         yticks = axes.axes.get_yticks()
@@ -181,7 +185,7 @@ def plot_iv(t0, axes, prev1=None, prev2=None):
         axes.set_title("{:%m-%d} f1:{}".format(t0, s0_1))
 
     axes.vlines(s0_1, yticks[0], yticks[-1], linestyle="-", linewidth=1)
-    return (s0_1, t_1, op_df1), (s0_2, t_2, op_df2)
+    return (s0_1, t_1, op_df1, full_price1), (s0_2, t_2, op_df2, full_price2)
 
 
 def draw_dashboard(portofolio, t0, prev1=None, prev2=None):
@@ -222,6 +226,24 @@ def draw_dashboard(portofolio, t0, prev1=None, prev2=None):
         ]
     ]
     summary = pd.DataFrame(position.sum()[["pl", "delta", "gamma", "vega", "theta"]])
-    html_text = tpl.render({"position": position.to_html(), "png_data": png_data, "summary": summary.to_html()})
+    html_text = tpl.render(
+        {
+            "position": position.to_html(),
+            "png_data": png_data,
+            "summary": summary.to_html(),
+        }
+    )
     return HTML(html_text), prev1, prev2
 
+
+def get_portfolio_history(portfolio, date_range):
+    df = portfolio.position.copy()
+    for t0 in date_range:
+        try:
+            portfolio.update(t0)
+            df_after = portfolio.position.copy()
+            df_after["timestamp"] = t0
+            df = pd.concat([df, df_after])
+        except Exception:
+            pass
+    return df
