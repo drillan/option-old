@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from IPython.display import HTML
 from jinja2 import Template
 import ivolat3
+from jpxtime3 import get_sq, get_t
 
 
 s_df = pd.read_pickle("./data/s.pickle")
@@ -34,15 +35,11 @@ def get_itm(df, s, t):
 
 def get_fop_data(t0):
     t0 = pd.to_datetime(t0)
-    t1_1 = pd.to_datetime("2018-03-09 09:00")
-    t1_2 = pd.to_datetime("2018-04-13 09:00")
     maturity = s_df.columns
+    t_1 = get_t(t0, get_sq(maturity[0]))
+    t_2 = get_t(t0, get_sq(maturity[1]))
     s0_1 = s_df.loc[t0, maturity[0]]
     s0_2 = s_df.loc[t0, maturity[1]]
-    delta_t_1 = t1_1 - t0
-    delta_t_2 = t1_2 - t0
-    t_1 = (delta_t_1.days / 365) + (delta_t_1.seconds / 31536000)
-    t_2 = (delta_t_2.days / 365) + (delta_t_2.seconds / 31536000)
     op_df1 = op_pn1.loc[t0].dropna().reset_index().copy()
     op_df2 = op_pn2.loc[t0].dropna().reset_index().copy()
     op_df1.set_index("k", inplace=True)
@@ -190,12 +187,12 @@ def plot_iv(t0, axes, prev1=None, prev2=None, x_lim=(12500, 26000), y_lim=(0.10,
         yticks = axes.axes.get_yticks()
         axes.vlines(s0_1_prev, yticks[0], yticks[-1], linestyle="--", linewidth=1)
         axes.set_title(
-            "{:%m-%d} f1:{} -> {}({:+.2f})".format(
+            "{:%m-%d %H:%M} f1:{} -> {}({:+.2f})".format(
                 t0, s0_1_prev, s0_1, s0_1 - s0_1_prev
             )
         )
     else:
-        axes.set_title("{:%m-%d} f1:{}".format(t0, s0_1))
+        axes.set_title("{:%m-%d %H:%M} f1:{}".format(t0, s0_1))
 
     axes.vlines(s0_1, yticks[0], yticks[-1], linestyle="-", linewidth=1)
     return (s0_1, t_1, op_df1, full_price1), (s0_2, t_2, op_df2, full_price2)
@@ -256,7 +253,7 @@ def get_portfolio_history(portfolio, date_range):
             portfolio.update(t0)
             df_after = portfolio.position.copy()
             df_after["timestamp"] = t0
-            df = pd.concat([df, df_after])
+            df = pd.concat([df, df_after], sort=False)
         except Exception:
             pass
     return df
