@@ -16,6 +16,13 @@ q = 0
 const_1per365 = 1 / 365
 
 
+def set_data(s_path, op1_path, op2_path):
+    global s_df, op_pn1, op_pn2
+    s_df = pd.read_pickle(s_path)
+    op_pn1 = pd.read_pickle(op1_path)
+    op_pn2 = pd.read_pickle(op2_path)
+
+
 def get_itm(df, s, t):
     itm_df = df.copy()
     itm_df["ITM"] = itm_df["Call/Put"].map(lambda x: {"C": "P", "P": "C"}[x])
@@ -29,8 +36,9 @@ def get_fop_data(t0):
     t0 = pd.to_datetime(t0)
     t1_1 = pd.to_datetime("2018-03-09 09:00")
     t1_2 = pd.to_datetime("2018-04-13 09:00")
-    s0_1 = s_df.loc[t0, "1803"]
-    s0_2 = s_df.loc[t0, "1804"]
+    maturity = s_df.columns
+    s0_1 = s_df.loc[t0, maturity[0]]
+    s0_2 = s_df.loc[t0, maturity[1]]
     delta_t_1 = t1_1 - t0
     delta_t_2 = t1_2 - t0
     t_1 = (delta_t_1.days / 365) + (delta_t_1.seconds / 31536000)
@@ -77,7 +85,8 @@ def get_fop_data(t0):
 
 
 class Portfolio:
-    maturity_dict = {0: "1803", 1: "1804"}
+    maturity = s_df.columns
+    maturity_dict = {0: maturity[0], 1: maturity[1]}
 
     def __init__(self):
         self.id = 0
@@ -144,24 +153,28 @@ class Portfolio:
             delta = qty
             gamma, vega, theta = 0.0, 0.0, 0.0
         else:
-            price = full_price[maturity][k, right]
-            iv = op_df[maturity].loc[k, "iv"]
-            s_, t_ = s0[maturity], t[maturity]
-            delta = ivolat3.delta(s_, k, r, q, t_, iv, right) * qty
-            gamma = ivolat3.gamma(s_, k, r, q, t_, iv) * qty * 1000
-            vega = ivolat3.vega(s_, k, r, q, t_, iv) * qty
-            theta = ivolat3.theta(s_, k, r, q, t_, iv, right) * qty * const_1per365
+            if k < op_df[maturity].index.min() or k > op_df[maturity].index.max():
+                iv = np.nan
+                price, delta, gamma, vega, theta = 0, 0, 0, 0, 0
+            else:
+                price = full_price[maturity][k, right]
+                iv = op_df[maturity].loc[k, "iv"]
+                s_, t_ = s0[maturity], t[maturity]
+                delta = ivolat3.delta(s_, k, r, q, t_, iv, right) * qty
+                gamma = ivolat3.gamma(s_, k, r, q, t_, iv) * qty * 1000
+                vega = ivolat3.vega(s_, k, r, q, t_, iv) * qty
+                theta = ivolat3.theta(s_, k, r, q, t_, iv, right) * qty * const_1per365
         return price, iv, delta, gamma, vega, theta
 
 
-def plot_iv(t0, axes, prev1=None, prev2=None):
+def plot_iv(t0, axes, prev1=None, prev2=None, x_lim=(12500, 26000), y_lim=(0.10, 1)):
     (s0_1, t_1, op_df1, full_price1), (s0_2, t_2, op_df2, full_price2) = get_fop_data(
         t0
     )
     axes.plot(op_df1.index, op_df1["iv"], color="#1f77b4")
     axes.plot(op_df2.index, op_df2["iv"], color="#ff7f0e")
-    axes.set_xlim(12500, 26000)
-    axes.set_ylim(0.15, 1)
+    axes.set_xlim(x_lim)
+    axes.set_ylim(y_lim)
     yticks = axes.axes.get_yticks()
 
     s0_1_prev = np.nan
