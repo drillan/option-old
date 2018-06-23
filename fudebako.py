@@ -164,14 +164,16 @@ class Portfolio:
         return price, iv, delta, gamma, vega, theta
 
 
-def plot_iv(t0, axes, prev1=None, prev2=None, x_lim=(12500, 26000), y_lim=(0.10, 1)):
+def plot_iv(t0, axes, prev1=None, prev2=None, x_lim=None, y_lim=None):
     (s0_1, t_1, op_df1, full_price1), (s0_2, t_2, op_df2, full_price2) = get_fop_data(
         t0
     )
     axes.plot(op_df1.index, op_df1["iv"], color="#1f77b4")
     axes.plot(op_df2.index, op_df2["iv"], color="#ff7f0e")
-    axes.set_xlim(x_lim)
-    axes.set_ylim(y_lim)
+    if x_lim:
+        axes.set_xlim(x_lim)
+    if y_lim:
+        axes.set_ylim(y_lim)
     yticks = axes.axes.get_yticks()
 
     s0_1_prev = np.nan
